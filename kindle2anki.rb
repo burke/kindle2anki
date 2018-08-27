@@ -50,8 +50,18 @@ class Kindle
   def highlights
     @highlights ||= JSON.load(open(@path))
   end
+
+  def to_tsv
+    highlights.map do |hl|
+      hl.values_at('text', 'title', 'author', 'location')
+        .map { |f| f.gsub(/[\t\n]/, "  ") }
+        .join("\t")
+    end.join("\n")
+  end
 end
 
 kindle = Kindle.new(email, pass)
-kindle.update
-kindle.save
+# kindle.update
+# kindle.save
+puts kindle.to_tsv
+
