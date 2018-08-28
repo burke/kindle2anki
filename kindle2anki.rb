@@ -1,67 +1,48 @@
 require 'open3'
-require 'kindle_highlights'
 require 'json'
+require 'net/http'
+require 'digest/sha1'
 
-email = begin
-  File.read(File.join(__dir__, ".email")).chomp
-rescue Errno::ENOENT
-  abort "create a file at kindle2anki/.email containing your email address."
-end
-
-pass, stat = Open3.capture2(
-  "/usr/bin/security", "find-generic-password", "-a", email, "-w", "-l", "kindle",
+rwsessionid, _, t = Open3.capture3(
+  'security',
+  'find-generic-password',
+  '-w', # print only the password
+  '-l', 'readwise-rwsessionid' 
 )
-unless stat.success?
-  abort "open Keychain Access.app, press Command-N, and enter 'kindle', then your kindle email and password, then run again."
-end
-pass.chomp!
+abort 'missing rwsessionid' unless t.success?
 
-class Kindle
-  def initialize(user, pass, path = 'data.json')
-    @user = user
-    @pass = pass
-    @path = path
-  end
 
-  def update
-    html = HTMLEntities.new
-    kindle = KindleHighlights::Client.new(email_address: @user, password: @pass) 
-    @highlights = []
-
-    kindle.books.each do |book|
-      kindle.highlights_for(book.asin).each do |highlight|
-        @highlights << {
-          asin:     book.asin,
-          title:    book.title,
-          author:   book.author,
-          location: highlight.location,
-          text:     highlight.text,
-        }
-      end
-    end
-  end
-
-  def save 
-    File.open(@path, "w+") do |fp| 
-      fp << @highlights.to_json
-    end
-  end
-
-  def highlights
-    @highlights ||= JSON.load(open(@path))
-  end
-
-  def to_tsv
-    highlights.map do |hl|
-      hl.values_at('text', 'title', 'author', 'location')
-        .map { |f| f.gsub(/[\t\n]/, "  ") }
-        .join("\t")
-    end.join("\n")
+def highlights_from_api(rwsessionid)
+  cookie = "rwsessionid=#{rwsessionid.chomp}"
+  Net::HTTP.start('readwise.io', 443, use_ssl: true) do |http|
+    resp = http.get('/munger', { 'Cookie' => cookie })
+    abort 'GET failed' unless resp.code.to_i == 200
+    return JSON.parse(resp.body)
   end
 end
 
-kindle = Kindle.new(email, pass)
-# kindle.update
-# kindle.save
-puts kindle.to_tsv
+data = highlights_from_api(rwsessionid)
 
+def format_highlight(highlight:, note:, author:, source:, medium:)
+  digest = Digest::SHA1.hexdigest([highlight,author,source,medium].join("\1"))
+  [digest, highlight, source, author].join("\t") + "\n"
+end
+
+def to_tsv(data)
+  out = ""
+  data.fetch('data').map do |book|
+    highlights = book.delete('highlights')
+    highlights.each do |highlight|
+      out << format_highlight(
+        highlight: highlight['highlight'],
+        note:      highlight['note'],
+        author:    book['author'],
+        source:    book['source'],
+        medium:    book['medium'],
+      )
+    end
+  end
+  out
+end
+
+puts to_tsv(data)
