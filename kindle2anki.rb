@@ -20,14 +20,26 @@ def highlights_from_api(rwsessionid)
   end
 end
 
-data = highlights_from_api(rwsessionid)
-
 def format_highlight(highlight:, note:, author:, source:, medium:)
   digest = Digest::SHA1.hexdigest([highlight,author,source,medium].join("\1"))
   [digest, highlight, note, author, source, medium].map{|f|f ? f.gsub(/[\t\n]/, ' ') : f}.join("\t") + "\n"
 end
 
-def to_tsv(data)
+def pdf_data_to_tsv(pdf_data)
+  out = ""
+  pdf_data.each do |item|
+    out << format_highlight(
+      highlight: item['highlight'],
+      note: item['note'],
+      author: item['author'],
+      source: item['source'],
+      medium: item['medium']
+    )
+  end
+  out
+end
+
+def readwise_to_tsv(data)
   out = ""
   data.fetch('data').map do |book|
     highlights = book.delete('highlights')
@@ -44,4 +56,8 @@ def to_tsv(data)
   out
 end
 
-puts to_tsv(data)
+data = highlights_from_api(rwsessionid)
+pdf_data = JSON.parse(File.read('pdf-extract/pdf-highlights.json'))
+
+puts pdf_data_to_tsv(pdf_data)
+puts readwise_to_tsv(data)

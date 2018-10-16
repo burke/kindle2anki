@@ -98,9 +98,11 @@ class AnnotationRipper
 
     def to_json(*)
       {
+        highlight: @text,
+        note: nil,
         author: @author,
-        title: @title,
-        highlight: @text
+        source: @title,
+        medium: 'pdf'
       }.to_json
     end
   end
