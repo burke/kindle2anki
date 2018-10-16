@@ -24,7 +24,7 @@ data = highlights_from_api(rwsessionid)
 
 def format_highlight(highlight:, note:, author:, source:, medium:)
   digest = Digest::SHA1.hexdigest([highlight,author,source,medium].join("\1"))
-  [digest, highlight, note, author, source, medium].map{|f|f ? f.tr("\t", ' ') : f}.join("\t") + "\n"
+  [digest, highlight, note, author, source, medium].map{|f|f ? f.gsub(/[\t\n]/, ' ') : f}.join("\t") + "\n"
 end
 
 def to_tsv(data)

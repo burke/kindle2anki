@@ -1,0 +1,6 @@
+up:
+  - ruby: 2.5.1
+  - bundler
+
+commands:
+  server: 'ruby lol.rb 2>&1 | grep -v ::Fixnum'
