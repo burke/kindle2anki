@@ -1,4 +1,3 @@
-# MIT License; please build a better version of this into readwise.
 require 'pdf-reader-turtletext'
 require 'json'
 require 'base64'
@@ -34,15 +33,22 @@ class AnnotationRipper
       pages_from(pages_obj)
     end
 
-    def text_in_rectangle(page, x, y, z, w)
-      textangle = @tt.bounding_box do
-        page(page)
-        right_of(x)
-        above(y)
-        left_of(z)
-        below(w)
+    def text_in_rectangle(page, quadpoints)
+      texts = []
+      quadpoints.each_slice(8) do |ulx, uly, urx, ury, llx, lly, lrx, lry|
+        textangle = @tt.bounding_box do
+          page(page)
+          right_of(llx)
+          above(lly)
+          left_of(urx)
+          below(ury)
+          inclusive(true)
+        end
+        puts textangle.text.inspect
+        puts
+        texts.concat(textangle.text)
       end
-      textangle.text.join.strip
+      texts.join.strip
     end
 
     private
@@ -80,9 +86,9 @@ class AnnotationRipper
       annots.each do |ref|
         annot = @document.objects[ref.id]
         if annot[:Subtype] == :Highlight
-          x, y, z, w = @document.objects[annot[:Rect].id]
+          quadpoints = @document.objects[annot[:QuadPoints].id]
 
-          text = @document.text_in_rectangle(@page_num, x, y, z, w)
+          text = @document.text_in_rectangle(@page_num, quadpoints)
 
           ret << Annotation.new(@document.author, @document.title, text)
         end
@@ -110,8 +116,8 @@ class AnnotationRipper
   end
 end
 
-PDFS_PATH = File.expand_path('~/Library/Mobile Documents/com~apple~CloudDocs/Highlighted PDFs')
-annots = Dir.glob(PDFS_PATH + '/*.pdf').flat_map do |pdf|
+glob = '/Users/burke/Library/Mobile Documents/com~apple~CloudDocs/Highlighted PDFs/*.pdf'
+annots = Dir.glob(glob).flat_map do |pdf|
   AnnotationRipper::Document.new(pdf).annotations
 end
 puts annots.to_json

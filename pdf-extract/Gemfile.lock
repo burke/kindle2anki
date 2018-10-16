@@ -1,0 +1,21 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    Ascii85 (1.0.3)
+    byebug (10.0.2)
+    pdf-reader (1.1.1)
+      Ascii85 (~> 1.0.0)
+      ruby-rc4
+    pdf-reader-turtletext (0.2.2)
+      pdf-reader (= 1.1.1)
+    ruby-rc4 (0.1.5)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  byebug
+  pdf-reader-turtletext
+
+BUNDLED WITH
+   1.16.0
