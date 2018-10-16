@@ -3,4 +3,4 @@ up:
   - bundler
 
 commands:
-  server: 'ruby lol.rb 2>&1 | grep -v ::Fixnum | tee pdf-highlights.json'
+  server: 'ruby lol.rb 2>&1 | grep -v ::Fixnum > pdf-highlights.json'

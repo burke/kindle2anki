@@ -82,24 +82,25 @@ class AnnotationRipper
 
         quadpoints = @document.objects[annot[:QuadPoints].id]
         text = @document.text_in_rectangle(@page_num, quadpoints)
-        acc << Annotation.new(@document.author, @document.title, text)
+        acc << Annotation.new(@document.author, @document.title, text, annot[:Contents])
       end
     end
   end
 
   class Annotation # :nodoc:
-    attr_reader :author, :title, :text
+    attr_reader :author, :title, :text, :note
 
-    def initialize(author, title, text)
+    def initialize(author, title, text, note)
       @author = author
       @title = title
       @text = text
+      @note = note
     end
 
     def to_json(*)
       {
         highlight: @text,
-        note: nil,
+        note: @note,
         author: @author,
         source: @title,
         medium: 'pdf'
