@@ -1,3 +1,4 @@
+# MIT License; please build a better version of this into readwise.
 require 'pdf-reader-turtletext'
 require 'json'
 require 'base64'
