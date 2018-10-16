@@ -1,15 +1,13 @@
 require 'pdf-reader-turtletext'
-require 'json'
-require 'base64'
 
 class AnnotationRipper
-  class Document
+  class Document # :nodoc:
     attr_reader :objects
 
     def initialize(fname)
       @pdf = PDF::Reader.new(fname)
       @tt = PDF::Reader::Turtletext.new(fname)
-      @objects = @pdf.objects.reduce({}){|acc,(k,v)|acc[k.id]=v;acc}
+      @objects = @pdf.objects.each_with_object({}) { |(k, v), a| a[k.id] = v }
     end
 
     def title
@@ -35,7 +33,7 @@ class AnnotationRipper
 
     def text_in_rectangle(page, quadpoints)
       texts = []
-      quadpoints.each_slice(8) do |ulx, uly, urx, ury, llx, lly, lrx, lry|
+      quadpoints.each_slice(8) do |_ulx, _uly, urx, ury, llx, lly, _lrx, _lry|
         textangle = @tt.bounding_box do
           page(page)
           right_of(llx)
@@ -44,8 +42,6 @@ class AnnotationRipper
           below(ury)
           inclusive(true)
         end
-        puts textangle.text.inspect
-        puts
         texts.concat(textangle.text)
       end
       texts.join.strip
@@ -58,8 +54,7 @@ class AnnotationRipper
       when :Pages
         pages = []
         obj.fetch(:Kids, []).each do |kid_ref|
-          kid = objects[kid_ref.id]
-          pages.concat(pages_from(kid))
+          pages.concat(pages_from(objects[kid_ref.id]))
           pages.each.with_index { |p, i| p.page_num = i + 1 }
         end
         pages
@@ -71,7 +66,7 @@ class AnnotationRipper
     end
   end
 
-  class Page
+  class Page # :nodoc:
     attr_accessor :page_num
     def initialize(document, obj)
       @document = document
@@ -81,23 +76,18 @@ class AnnotationRipper
     def annotations
       return [] unless @obj[:Annots]
 
-      annots = @document.objects[@obj[:Annots].id]
-      ret = []
-      annots.each do |ref|
+      @document.objects[@obj[:Annots].id].each_with_object([]) do |ref, acc|
         annot = @document.objects[ref.id]
-        if annot[:Subtype] == :Highlight
-          quadpoints = @document.objects[annot[:QuadPoints].id]
+        next unless annot[:Subtype] == :Highlight
 
-          text = @document.text_in_rectangle(@page_num, quadpoints)
-
-          ret << Annotation.new(@document.author, @document.title, text)
-        end
+        quadpoints = @document.objects[annot[:QuadPoints].id]
+        text = @document.text_in_rectangle(@page_num, quadpoints)
+        acc << Annotation.new(@document.author, @document.title, text)
       end
-      ret
     end
   end
 
-  class Annotation
+  class Annotation # :nodoc:
     attr_reader :author, :title, :text
 
     def initialize(author, title, text)
@@ -110,14 +100,22 @@ class AnnotationRipper
       {
         author: @author,
         title: @title,
-        highlight: @text,
+        highlight: @text
       }.to_json
     end
   end
 end
 
-glob = '/Users/burke/Library/Mobile Documents/com~apple~CloudDocs/Highlighted PDFs/*.pdf'
-annots = Dir.glob(glob).flat_map do |pdf|
-  AnnotationRipper::Document.new(pdf).annotations
+if $PROGRAM_NAME == __FILE__
+  require 'json'
+
+  pdfs_path = File.expand_path(
+    '~/Library/Mobile Documents/com~apple~CloudDocs/Highlighted PDFs'
+  )
+
+  annots = Dir.glob(pdfs_path + '/*.pdf').flat_map do |pdf|
+    AnnotationRipper::Document.new(pdf).annotations
+  end
+
+  puts annots.to_json
 end
-puts annots.to_json
