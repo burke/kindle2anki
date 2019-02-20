@@ -1,5 +1,5 @@
 up:
-  - ruby: 2.5.0
+  - ruby: 2.6.0
   - bundler
 commands:
   build: bundle exec ruby kindle2anki.rb > import.tsv
