@@ -95,4 +95,6 @@ sleep(8)
 
 STDERR.puts "update last-run with #{$prev} -> #{$highest}? (enter/^C)"
 gets
+require('fileutils')
+FileUtils.mv('last-run', 'prev-last-run')
 File.write('last-run', $highest.to_s + "\n")
