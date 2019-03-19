@@ -117,8 +117,13 @@ if $PROGRAM_NAME == __FILE__
   )
 
   annots = Dir.glob(pdfs_path + '/*.pdf').flat_map do |pdf|
-    AnnotationRipper::Document.new(pdf).annotations
-  end
+    begin
+      AnnotationRipper::Document.new(pdf).annotations
+    rescue => e
+      # STDERR.puts "Failed to handle document #{pdf}"
+      nil
+    end
+  end.compact
 
   puts annots.to_json
 end

@@ -1,2 +1,4 @@
 import.tsv
 .bundle
+.rubocop-*
+last-run

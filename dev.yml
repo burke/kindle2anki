@@ -2,5 +2,5 @@ up:
   - ruby: 2.6.0
   - bundler
 commands:
-  build: bundle exec ruby kindle2anki.rb > import.tsv
-  run-built: open -a Anki import.tsv
+  __default__: build
+  build: bundle exec ruby kindle2anki.rb
